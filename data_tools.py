@@ -3,8 +3,6 @@
 '''
 现存问题
 1.拍摄阴影暂时无法规避(考虑光照补偿/去除阴影)
-2.图像矫正尚未实现(霍夫直线)
-3.
 '''
 import cv2
 import numpy as np
@@ -51,6 +49,23 @@ class DataTools:
         return self.image
     
     # 图像矫正
+    def Correction(self):
+        gray = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
+        edges = cv2.Canny(gray, 50, 150, apertureSize=3)
+        lines = cv2.HoughLines(edges, 1, np.pi/180, 200)
+        angle = 0
+        if lines is not None:
+            angles = []
+            for line in lines:
+                rho, theta = line[0]
+                angle_deg = np.rad2deg(theta)-90
+                angles.append(angle_deg)
+            angle = np.mean(angles)
+        if angle != 0:
+            rows, cols = self.image.shape[:2]
+            M = cv2.getRotationMatrix2D((cols/2, rows/2), angle, 1)
+            self.image = cv2.warpAffine(self.image, M, (cols, rows))
+        return self.image
 
     # 光照补偿
     # def Retinex(self, sigma=30):
@@ -59,15 +74,20 @@ class DataTools:
     #     retinex = np.log(image_float)-np.log(image_blur)
     #     self.image = np.uint8(np.clip(retinex*255 / np.max(retinex), 0, 255))
     #     return self.image
-    def Equalization(self):
-        gray = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
-        equalized = cv2.equalizeHist(gray)
-        self.image = cv2.cvtColor(equalized, cv2.COLOR_GRAY2BGR)
-        return self.image
+    # def Equalization(self):
+    #     gray = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
+    #     equalized = cv2.equalizeHist(gray)
+    #     self.image = cv2.cvtColor(equalized, cv2.COLOR_GRAY2BGR)
+    #     return self.image
+    # def Brightness(self, alpha=1, beta=0):
+    #     self.image = cv2.convertScaleAbs(self.image, alpha=alpha, beta=beta)
+    #     return self.image
 
 if __name__ == '__main__':
-    image_path = 'test.jpg'
+    image_path = r'data\1.jpg'
     data_tools = DataTools(image_path)
+    # data_tools.Brightness(alpha=1.5, beta=10)
+    # data_tools.Correction()
     # data_tools.Equalization()
     # data_tools.Denoise(method='gussian', kernel_size=1)
     # data_tools.Binarization(method='otsu')

@@ -6,9 +6,12 @@ ocr = PaddleOCR(
     use_doc_orientation_classify=False,
     use_doc_unwarping=False,
     use_textline_orientation=False,
+
+
 )
 
-output = ocr.predict(r'D:\Project\Automatic-Grading\1.jpg')
+
+output = ocr.predict(r'C:\Users\TM\Desktop\preprocessed.jpg')
 for res in output:
     res.print()
     res.save_to_img(save_path="./output/")

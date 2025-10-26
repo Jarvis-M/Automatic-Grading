@@ -6,6 +6,7 @@ import os
 image_path = r"D:\C++_OCR\Automatic-Grading\data\241042Y416\test1\1.jpg"
 img = cv2.imread(image_path)
 
+
 # 获取原图文件名（不含扩展名）
 image_name = os.path.splitext(os.path.basename(image_path))[0]
 

@@ -33,6 +33,16 @@ class OCR:
     def preprocessed_image(self, image_path):
         img = cv2.imread(image_path)
         image_name = os.path.splitext(os.path.basename(image_path))[0]
+
+        # height, width = img.shape[:2]
+        # # max_dimension = 4000  # 设置合适的最大尺寸
+        
+        # if max(height, width) > max_dimension:
+        #     scale = max_dimension / max(height, width)
+        #     new_width = int(width * scale)
+        #     new_height = int(height * scale)
+        #     img = cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_AREA)
+    
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         def apply_preprocessing_denoise_only(image):
             """

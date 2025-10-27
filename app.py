@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, jsonify
+from flask_cors import CORS
 from werkzeug.utils import secure_filename
 import os
 from PaddleOCR import OCR
@@ -8,7 +9,8 @@ from scoring.grade_cpp_llm_only import grade_cpp_file_llm_only
 import json
 
 app = Flask(__name__)
-
+# CORS(app,resources={r"/*": {"origins": "http://localhost:5500"}}) #Live Server的默认端口
+CORS(app)
 UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 

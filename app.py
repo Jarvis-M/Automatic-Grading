@@ -65,7 +65,7 @@ def ai_score():
                 "code_quality": scores.get('code_quality', 0),
                 "readability": scores.get('readability', 0),
                 "total": breakdown.get('total', 0),
-                "confidence": breakdown.get('confidence', 0)
+                # "confidence": breakdown.get('confidence', 0)
             }
 
             # 获取评分理由

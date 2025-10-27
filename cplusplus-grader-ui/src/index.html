@@ -1,0 +1,64 @@
+<!DOCTYPE html><!--声明文档类型为html5-->
+<html lang="zh-CN"><!--html根元素，设置语言为中文-->
+<head>
+    <meta charset="UTF-8"><!--设置字符编码为UTF-8-->
+    <meta name="viewport"  content="width=device-width, initial-scale=1.0"><!--设置视口，使页面在移动端正确显示-->
+    <title>C++作业批改系统 - 上传</title><!--页面标题-->
+    <link rel="stylesheet" href="css/style.css"><!--引入外部css样式表-->
+</head>
+<body>
+    <!-- 顶部导航栏-->
+    <nav class="navbar">
+        <div class="nav-container">
+            <h1 class="nav-logo">C++作业批改系统</h1>
+            <div class="nav-links">
+                <a href="index.html" class="nav-link active">上传图片</a>
+                <a href="resilt.html" class="nav-link">作业评分与建议</a>
+            </div>
+        </div>
+    </nav>
+
+    <!--主内容区-->
+    <main class="main-container">
+        <div class="upload-card">
+            <h2>上传作业图片</h2>
+
+            <!-- 添加学号信息 -->
+            <div class="student-id-input">
+                <label for="studentId">学号</label>
+                <input type="text" id="studentId" placeholder="请输入学号">
+            </div>
+
+            <!--上传区域-->
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-placeholder">
+                    <span class="upload-icon">📁</span>
+                    <p>点击或拖拽图片到此区域</p>
+                    <p class="upload-hint">支持JPG\PNG 格式</p>
+                </div>
+                <input type="file" id="fileInput" accept=".jpg, .jieg, .png" hidden>
+            </div>
+
+            <!--图片预览区域-->
+            <div class="preview-area" id="previewArea" style="display: none;">
+                <img id="previewImage" src="" alt="预览图片">
+                <p class="preview-filename" id="previewFilename"></p>
+            </div>
+
+            <!--按钮组-->
+            <div class="button-group">
+                <button class="btn btn-secondary" id="reuploadBtn">重新上传</button>
+                <button class="btn btn-primary" id="confirmBtn">确认上传</button>
+            </div>
+
+            <!--上传状态-->
+            <div class="upload-status" id="uploadStatus" style="display:none;">
+                <div class="loading-spinner"></div>
+                <span>正在上传和处理图片</span>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/script.js"></script>
+</body>
+</html>    

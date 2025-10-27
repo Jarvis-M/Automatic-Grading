@@ -32,13 +32,24 @@ def upload_file():
         return jsonify({"error": "Invalid file type"}), 400 
     
 @app.route('/ai_score', methods=['POST'])
-def ai_score():
+async def ai_score():
     data = request.get_json()
     filepath = data.get('filepath')
     
     if not filepath or not os.path.exists(filepath):
         return jsonify({"error":"File not found"}), 400
-    
+    # 确保目标文件夹存在
+    output_dir = './results/cpp'
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    corrected_dir = './results/cpp_ed'
+    if not os.path.exists(corrected_dir):
+        os.makedirs(corrected_dir)  
+
+    build_dir = './results/build'
+    if not os.path.exists(build_dir):
+        os.makedirs(build_dir)  
     try:
         ocr = OCR(file_path=filepath)
         cpp_output_path = "./results/cpp/output.cpp"
@@ -51,9 +62,9 @@ def ai_score():
         compile_result = compiler.compile_single_file(corrected_cpp_path)
 
         stderr = compile_result.get("stderr","")
-        ##ai评分还没有完善
-        problem_desc = ""
-        result = grade_cpp_file_llm_only(problem_desc, corrected_cpp_path, error_messages=stderr)
+
+        problem_desc = "实现栈的pop、push、有多少元素和还剩空余多少空间的操作"
+        result = await grade_cpp_file_llm_only(problem_desc, corrected_cpp_path, error_messages=stderr)
 
         if result.get('score_breakdown'):
             breakdown = result['score_breakdown']

@@ -14,7 +14,7 @@ class MoonshotClient:
     
     def __init__(self, api_key: str, base_url: str = "https://api.moonshot.cn/v1"):
         self.client = OpenAI(
-            api_key="YOUR_API_KEY",  # 替换为你的API密钥
+            api_key="sk-lszpP34FkMmgW6JyZURgKpRx9G6ld9zJJNTDiDHEpU9AMBzX",  # 替换为你的API密钥
             base_url=base_url,
         )
         self.model = "moonshot-v1-8k"  # 使用支持的模型

@@ -307,7 +307,7 @@ function initUploadPage() {
             confirmBtn.disabled = true;
             confirmBtn.textContent = '处理中...';
             
-            
+            /*
             // ========== 模拟2数据测试 ==========
             
             // 模拟处理延迟
@@ -342,7 +342,7 @@ function initUploadPage() {
             
             console.log('模拟处理完成，准备跳转:', result);
 
-
+            */
             /*
             // 模拟1上传到后端
             const taskId = await mockUploadToBackend(file,studentId);
@@ -351,7 +351,6 @@ function initUploadPage() {
             window.location.href = `result.html?task_id=${taskId}&student_id=${studentId}`;
             */
 
-            /*
             //==============  真实API调用  ====================
             //1.先上传文件
             //const filepath = await realUploadToBackend(file, studentId);
@@ -367,7 +366,7 @@ function initUploadPage() {
                 total_score: apiResult.score_breakdown.total,
                 ai_feedback: formatAIFeedback(apiResult)
             };
-            */
+            
             //3.跳转到结果页面，传递数据
             //由于数据较多，尝试使用URL参数传递基本信息，或者使用sessionStorage
             sessionStorage.setItem('gradingResult', JSON.stringify(result));

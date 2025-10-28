@@ -306,15 +306,53 @@ function initUploadPage() {
             toggleElement('uploadStatus', true);
             confirmBtn.disabled = true;
             confirmBtn.textContent = '处理中...';
+            
+            
+            // ========== 模拟2数据测试 ==========
+            
+            // 模拟处理延迟
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // 创建模拟结果数据
+            const result = {
+                student_id: studentId, // 使用前端输入的学号
+                total_score: Math.floor(Math.random() * 30) + 70, // 70-100的随机分数
+                ai_feedback: `
+                    <h3>📊 评分细则（模拟数据）</h3>
+                    <ul>
+                        <li><strong>可编译性：</strong>20/20分 - 代码一次性编译通过</li>
+                        <li><strong>正确性：</strong>35/40分 - 通过7/8个测试用例</li>
+                        <li><strong>代码质量：</strong>18/20分 - 结构清晰，命名规范</li>
+                        <li><strong>鲁棒性：</strong>8/10分 - 有基础异常处理</li>
+                        <li><strong>文档与可读性：</strong>4/10分 - 缺少必要注释</li>
+                    </ul>
+                    
+                    <h3>📝 评分理由</h3>
+                    <p>代码逻辑清晰，基本功能实现完整，但在边界条件处理上可以更加完善。</p>
+                    
+                    <h3>💡 改进建议</h3>
+                    <ul>
+                        <li>建议在关键函数前添加注释，说明其功能和参数</li>
+                        <li>第25行的循环可以优化，避免不必要的计算</li>
+                        <li>考虑使用更描述性的变量名，提高代码可读性</li>
+                        <li>可以添加更多的输入验证来增强程序的健壮性</li>
+                    </ul>
+                `
+            };
+            
+            console.log('模拟处理完成，准备跳转:', result);
 
-            /**
-             * // 模拟上传到后端（实际项目中替换为真实API调用）
+
+            /*
+            // 模拟1上传到后端
             const taskId = await mockUploadToBackend(file,studentId);
             
             // 跳转到结果页面，传递taskId和studentId
             window.location.href = `result.html?task_id=${taskId}&student_id=${studentId}`;
-             */
-            
+            */
+
+            /*
+            //==============  真实API调用  ====================
             //1.先上传文件
             //const filepath = await realUploadToBackend(file, studentId);
             const filepath = await realUploadToBackend(file);
@@ -329,7 +367,7 @@ function initUploadPage() {
                 total_score: apiResult.score_breakdown.total,
                 ai_feedback: formatAIFeedback(apiResult)
             };
-
+            */
             //3.跳转到结果页面，传递数据
             //由于数据较多，尝试使用URL参数传递基本信息，或者使用sessionStorage
             sessionStorage.setItem('gradingResult', JSON.stringify(result));

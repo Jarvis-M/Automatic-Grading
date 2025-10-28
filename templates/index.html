@@ -173,42 +173,86 @@ function initUploadPage() {
         confirmBtn.disabled = true;
         confirmBtn.textContent = '确认上传';
     }
+    //格式化AI反馈为HTML
+    function formatAIFeedback(apiResult){
+        const breakdown = apiResult.score_breakdown;
+        const rationale = apiResult.rationale;
+        const suggestions = apiResult.suggestions;
 
-    // 上传和处理图片
-    async function uploadAndProcessImage(file,studentId) {
-        try {
-            // 显示上传状态
-            toggleElement('uploadStatus', true);
-            confirmBtn.disabled = true;
-            confirmBtn.textContent = '处理中...';
+        let feedbackHTML = `
+        <h3>📊 评分细则</h3>
+            <ul>
+                <li><strong>可编译性：</strong>20/20分 - 代码一次性编译通过</li>
+                <li><strong>正确性：</strong>35/40分 - 通过7/8个测试用例</li>
+                <li><strong>代码质量：</strong>18/20分 - 结构清晰，命名规范</li>
+                <li><strong>鲁棒性：</strong>8/10分 - 有基础异常处理</li>
+                <li><strong>文档与可读性：</strong>4/10分 - 缺少必要注释</li>
+            </ul>
 
-            /**
-             * // 模拟上传到后端（实际项目中替换为真实API调用）
-            const taskId = await mockUploadToBackend(file,studentId);
-            
-            // 跳转到结果页面，传递taskId和studentId
-            window.location.href = `result.html?task_id=${taskId}&student_id=${studentId}`;
-             */
-            
-            //1.先上传文件
-            const filepath = await realUploadToBackend(file, studentId);
+            <h3>📝 评分理由</h3>
+        <p>${rationale}</p>
+        `;
 
-            //2.然后获取AI评分
-            const result = await realFetchResult(filepath,studentId);
-
-            //3.跳转到结果页面，传递数据
-            //由于数据较多，尝试使用URL参数传递基本信息，或者使用sessionStorage
-            sessionStorage.setItem('gradingResult', JSON.stringify(result));
-            window.location.href = `result.html?student_id=${studentId}`;
-
-            
-        } catch (error) {
-            console.error('上传错误:', error);
-            showAlert('处理失败：' + error.message);
-            resetUploadState();
+        if (suggestions && suggestions.length > 0){
+            feedbackHTML += `
+                <h3>💡 改进建议</h3>
+                <ul>
+            `;
+            suggestions.forEach(suggestions => {
+                feedbackHTML += `<li>${suggestion}</li>`;
+            });
+            feedbackHTML += `</ul>`;    
         }
-    }
 
+        return feedbackHTML;
+    }
+    async function realFetchResult(filepath, studentId) {
+        //真实的获取AI评分
+        try{
+            const response = await fetch(`${CONFIG.API_BASE_URL}/ai_score`,{
+                method: 'POST',
+                headers:{
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    filepath: filepath
+                })
+            });
+
+            if(!response.ok){
+                throw new Error(`获取评分失败: ${response.status} ${response.statusText}`);
+            }
+
+            const result = await response.json();
+
+            //根据后端返回格式处理
+            if(result.score_breakdown){
+                return{
+                    student_id: studentId,
+                    total_score: result.score_breakdown.total,
+                    ai_feedback: formatAIFeedback(result)//格式化后端返回的数据
+                };
+            } else {
+                throw new Error(result.error || '评分数据缺失');
+            }
+        } catch (error){
+            console.error('获取评分API错误', error);
+            throw error;
+        }
+        /** 
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                const result = {
+                    student_id: studentId,
+                    total_score: Math.floor(Math.random() * 30) + 70, // 70-100的随机分
+                    ai_feedback: generateMockFeedback()
+                };
+                console.log(`模拟获取结果成功，taskId: ${taskId}, 学号: ${studentId}`);
+                resolve(result);
+            }, 3000);
+        });
+        */
+    }
     // 后端上传
     async function realUploadToBackend(file,studentId) {
         const formData = new FormData();
@@ -251,6 +295,41 @@ function initUploadPage() {
             }
         **/
     }
+    // 上传和处理图片
+    async function uploadAndProcessImage(file,studentId) {
+        try {
+            // 显示上传状态
+            toggleElement('uploadStatus', true);
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = '处理中...';
+
+            /**
+             * // 模拟上传到后端（实际项目中替换为真实API调用）
+            const taskId = await mockUploadToBackend(file,studentId);
+            
+            // 跳转到结果页面，传递taskId和studentId
+            window.location.href = `result.html?task_id=${taskId}&student_id=${studentId}`;
+             */
+            
+            //1.先上传文件
+            const filepath = await realUploadToBackend(file, studentId);
+
+            //2.然后获取AI评分
+            const result = await realFetchResult(filepath,studentId);
+
+            //3.跳转到结果页面，传递数据
+            //由于数据较多，尝试使用URL参数传递基本信息，或者使用sessionStorage
+            sessionStorage.setItem('gradingResult', JSON.stringify(result));
+            window.location.href = `result.html?student_id=${studentId}`;
+
+            
+        } catch (error) {
+            console.error('上传错误:', error);
+            showAlert('处理失败：' + error.message);
+            resetUploadState();
+        }
+    }
+
     // 初始状态禁用确认按钮
     confirmBtn.disabled = true;
 }
@@ -331,87 +410,6 @@ function initResultPage() {
     }
 
     // 获取结果
-    async function realFetchResult(filepath, studentId) {
-        //真实的获取AI评分
-        try{
-            const response = await fetch(`${CONFIG.API_BASE_URL}/ai_score`,{
-                method: 'POST',
-                headers:{
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    filepath: filepath
-                })
-            });
-
-            if(!response.ok){
-                throw new Error(`获取评分失败: ${response.status} ${response.statusText}`);
-            }
-
-            const result = await response.json();
-
-            //根据后端返回格式处理
-            if(result.score_breakdown){
-                return{
-                    student_id: studentId,
-                    total_score: result.score_breakdown.total,
-                    ai_feedback: formatAIFeedback(result)//格式化后端返回的数据
-                };
-            } else {
-                throw new Error(result.error || '评分数据缺失');
-            }
-        } catch (error){
-            console.error('获取评分API错误', error);
-            throw error;
-        }
-        /** 
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                const result = {
-                    student_id: studentId,
-                    total_score: Math.floor(Math.random() * 30) + 70, // 70-100的随机分
-                    ai_feedback: generateMockFeedback()
-                };
-                console.log(`模拟获取结果成功，taskId: ${taskId}, 学号: ${studentId}`);
-                resolve(result);
-            }, 3000);
-        });
-        */
-    }
-
-    //格式化AI反馈为HTML
-    function formatAIFeedback(apiResult){
-        const breakdown = apiResult.score_breakdown;
-        const rationale = apiResult.rationale;
-        const suggestions = apiResult.suggestions;
-
-        let feedbackHTML = `
-        <h3>📊 评分细则</h3>
-            <ul>
-                <li><strong>可编译性：</strong>20/20分 - 代码一次性编译通过</li>
-                <li><strong>正确性：</strong>35/40分 - 通过7/8个测试用例</li>
-                <li><strong>代码质量：</strong>18/20分 - 结构清晰，命名规范</li>
-                <li><strong>鲁棒性：</strong>8/10分 - 有基础异常处理</li>
-                <li><strong>文档与可读性：</strong>4/10分 - 缺少必要注释</li>
-            </ul>
-
-            <h3>📝 评分理由</h3>
-        <p>${rationale}</p>
-        `;
-
-        if (suggestions && suggestions.length > 0){
-            feedbackHTML += `
-                <h3>💡 改进建议</h3>
-                <ul>
-            `;
-            suggestions.forEach(suggestions => {
-                feedbackHTML += `<li>${suggestion}</li>`;
-            });
-            feedbackHTML += `</ul>`;    
-        }
-
-        return feedbackHTML;
-    }
 
 
     /** 

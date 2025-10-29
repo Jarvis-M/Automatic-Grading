@@ -54,38 +54,49 @@ function toggleElement(elementId, show) {
 
 //======================  part3: API函数（全局可访问）  =====================
 async function realUploadToBackend(file) {
-        const formData = new FormData();
-        formData.append('file',file)
-        //后端支持添加学号的话
-        //formData.append('student_id', studentId)
+    console.log('开始上传文件:', file.name, '大小:', file.size);
 
-        try{
-            const response = await fetch(`${CONFIG.API_BASE_URL}/upload`,{
-                method: 'POST',
-                body: formData,
-            });
+    const formData = new FormData();
+    formData.append('file',file)
+    //后端支持添加学号的话
+    //formData.append('student_id', studentId)
 
-            if (!response.ok){
-                throw new Error(`上传失败:${response.status} ${response.statusText}`);
-            }
+    try{
+        console.log('发送上传请求到:', `${CONFIG.API_BASE_URL}/upload`);
+        const response = await fetch(`${CONFIG.API_BASE_URL}/upload`,{
+            method: 'POST',
+            body: formData,
+        });
 
-            const result = await response.json();
+        console.log('上传响应状态:', response.status, response.statusText);
 
-            //根据后端返回格式处理
-            if(result.message && result.message.includes('successfully')){
-                return result.filepath;//返回文件路径，用于后续AI评分
-            }else{
-                throw new Error(result.error || '上传处理失败');
-            }
-           
-        } catch(error){
-            console.error('上传API错误:', error);
-            throw error;
+        if (!response.ok){
+            throw new Error(`上传失败:${response.status} ${response.statusText}`);
         }
+
+        const result = await response.json();
+        console.log('上传响应数据:', result);
+
+
+        //根据后端返回格式处理
+        if(result.message && result.message.includes('successfully')){
+            console.log('上传成功，文件路径:', result.filepath);
+            return result.filepath;//返回文件路径，用于后续AI评分
+        }else{
+            throw new Error(result.error || '上传处理失败');
+        }
+        
+    } catch(error){
+        console.error('上传API错误:', error);
+        throw error;
+    }
     }
 
 // 获取结果
 async function realFetchResult(filepath) {
+    console.log('开始获取AI评分，文件路径:', filepath);
+    
+    
     //真实的获取AI评分
     try{
         const response = await fetch(`${CONFIG.API_BASE_URL}/ai_score`,{
@@ -97,6 +108,8 @@ async function realFetchResult(filepath) {
                 filepath: filepath
             })
         });
+
+        console.log('AI评分响应状态:', response.status, response.statusText);
 
         if(!response.ok){
             throw new Error(`获取评分失败: ${response.status} ${response.statusText}`);
@@ -307,6 +320,8 @@ function initUploadPage() {
             confirmBtn.disabled = true;
             confirmBtn.textContent = '处理中...';
             
+            console.log('开始完整处理流程，学号:', studentId);
+
             /*
             // ========== 模拟2数据测试 ==========
             
@@ -341,7 +356,6 @@ function initUploadPage() {
             };
             
             console.log('模拟处理完成，准备跳转:', result);
-
             */
             /*
             // 模拟1上传到后端
@@ -350,7 +364,7 @@ function initUploadPage() {
             // 跳转到结果页面，传递taskId和studentId
             window.location.href = `result.html?task_id=${taskId}&student_id=${studentId}`;
             */
-
+            
             //==============  真实API调用  ====================
             //1.先上传文件
             //const filepath = await realUploadToBackend(file, studentId);
@@ -367,6 +381,8 @@ function initUploadPage() {
                 ai_feedback: formatAIFeedback(apiResult)
             };
             
+            console.log('处理完成，准备跳转，结果:', result);
+
             //3.跳转到结果页面，传递数据
             //由于数据较多，尝试使用URL参数传递基本信息，或者使用sessionStorage
             sessionStorage.setItem('gradingResult', JSON.stringify(result));
@@ -376,7 +392,11 @@ function initUploadPage() {
         } catch (error) {
             console.error('上传错误:', error);
             showAlert('处理失败：' + error.message);
-            resetUploadState();
+            //resetUploadState();
+            // 重置状态
+            toggleElement('uploadStatus', false);
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = '确认上传';
         }
     }
 

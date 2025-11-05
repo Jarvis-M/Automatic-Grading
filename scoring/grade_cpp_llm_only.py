@@ -16,7 +16,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # 定义JSON文件保存路径
-SCORING_RESULT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "./results/ai/scoring_result.json")
+SCORING_RESULT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), r"D:\Project\Automatic-Grading\results\ai\scoring_result.json")
 
 async def grade_cpp_file_llm_only(problem_description: str, cpp_file_path: str,
                                  compile_log: str = "", test_results: dict = None,

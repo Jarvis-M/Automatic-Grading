@@ -9,7 +9,7 @@ from scoring.grade_cpp_llm_only import grade_cpp_file_llm_only
 import json
 
 app = Flask(__name__)
-# CORS(app,resources={r"/*": {"origins": "http://localhost:5500"}}) #Live Server的默认端口
+# CORS(app,resources={r"/*": {"origins": "http://127.0.0.1:5500"}}) #Live Server的默认端口
 CORS(app)
 UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -17,6 +17,10 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 @app.route('/')
 def home():
     return render_template('index.html')
+
+@app.route('/result')
+def result():
+    return render_template('result.html')
 
 @app.route('/upload',methods=['POST'])
 def upload_file():
@@ -37,6 +41,7 @@ def upload_file():
 async def ai_score():
     data = request.get_json()
     filepath = data.get('filepath')
+    # print("filepath: ",filepath)
     
     if not filepath or not os.path.exists(filepath):
         return jsonify({"error":"File not found"}), 400
@@ -102,4 +107,4 @@ async def ai_score():
 if __name__ =='__main__':
     if not os.path.exists(UPLOAD_FOLDER):
         os.makedirs(UPLOAD_FOLDER)
-    app.run(debug=True)
+    app.run(debug=True,host='127.0.0.1', port=5000,)

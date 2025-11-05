@@ -52,7 +52,128 @@ function toggleElement(elementId, show) {
     }
 }
 
-//=======================  part3:页面功能  =============================
+//======================  part3: API函数（全局可访问）  =====================
+async function realUploadToBackend(file) {
+    console.log('开始上传文件:', file.name, '大小:', file.size);
+
+    const formData = new FormData();
+    formData.append('file',file)
+    //后端支持添加学号的话
+    //formData.append('student_id', studentId)
+
+    try{
+        console.log('发送上传请求到:', `${CONFIG.API_BASE_URL}/upload`);
+        const response = await fetch(`${CONFIG.API_BASE_URL}/upload`,{
+            method: 'POST',
+            body: formData,
+        });
+
+        console.log('上传响应状态:', response.status, response.statusText);
+
+        if (!response.ok){
+            throw new Error(`上传失败:${response.status} ${response.statusText}`);
+        }
+
+        const result = await response.json();
+        console.log('上传响应数据:', result);
+
+
+        //根据后端返回格式处理
+        if(result.message && result.message.includes('successfully')){
+            console.log('上传成功，文件路径:', result.filepath);
+            return result.filepath;//返回文件路径，用于后续AI评分
+        }else{
+            throw new Error(result.error || '上传处理失败');
+        }
+        
+    } catch(error){
+        console.error('上传API错误:', error);
+        throw error;
+    }
+    }
+
+// 获取结果
+async function realFetchResult(filepath) {
+    console.log('开始获取AI评分，文件路径:', filepath);
+    
+    
+    //真实的获取AI评分
+    try{
+        const response = await fetch(`${CONFIG.API_BASE_URL}/ai_score`,{
+            method: 'POST',
+            headers:{
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                filepath: filepath
+            })
+        });
+
+        console.log('AI评分响应状态:', response.status, response.statusText);
+
+        if(!response.ok){
+            throw new Error(`获取评分失败: ${response.status} ${response.statusText}`);
+        }
+
+        const result = await response.json();
+
+        //根据后端返回格式处理
+        if(result.score_breakdown){
+            return result;
+                /**
+                 * {
+                 * student_id: studentId,
+                 * total_score: result.score_breakdown.total,
+                 * ai_feedback: formatAIFeedback(result)//格式化后端返回的数据
+                 * };
+                 */
+                
+            
+        } else {
+            throw new Error(result.error || '评分数据缺失');
+        }
+    } catch (error){
+        console.error('获取评分API错误', error);
+        throw error;
+    }
+}
+
+//格式化AI反馈为HTML
+function formatAIFeedback(apiResult){
+    const breakdown = apiResult.score_breakdown;
+    const rationale = apiResult.rationale;
+    const suggestions = apiResult.suggestions;
+
+    let feedbackHTML = `
+    <h3>📊 评分细则</h3>
+        <ul>
+            <li><strong>可编译性：</strong>${breakdown.compilability}分</li>
+            <li><strong>正确性：</strong>${breakdown.correctness}分</li>
+            <li><strong>代码质量：</strong>${breakdown.code_quality}分</li>
+            <li><strong>可读性：</strong>${breakdown.readability}分</li>
+            <li><strong>总分：</strong>${breakdown.total}分</li>
+        </ul>
+
+        <h3>📝 评分理由</h3>
+    <p>${rationale}</p>
+    `;
+
+    if (suggestions && suggestions.length > 0){
+        feedbackHTML += `
+            <h3>💡 改进建议</h3>
+            <ul>
+        `;
+        suggestions.forEach(suggestion => {
+            feedbackHTML += `<li>${suggestion}</li>`;
+        });
+        feedbackHTML += `</ul>`;    
+    }
+
+    return feedbackHTML;
+}
+
+
+//=======================  part4:页面功能  =============================
 
 // 上传页面功能初始化
 function initUploadPage() {
@@ -65,21 +186,34 @@ function initUploadPage() {
     const previewFilename = document.getElementById('previewFilename');
     const uploadStatus = document.getElementById('uploadStatus');
     const studentIdInput = document.getElementById('studentId');
-    const navLinks = document.querySelectorAll('.nav-link');
+    //const navLinks = document.querySelectorAll('.nav-link');
     
     let selectedFile = null;
 
     // 为导航链接添加点击事件（防止未上传时跳转）
-    navLinks.forEach(link => {
-        if (link.getAttribute('href') === 'result.html') {
+    document.querySelectorAll('.nav-link').forEach(link => {
+        if (link.getAttribute('href') === 'result.html'){
             link.addEventListener('click', (e) => {
-                if (!selectedFile) {
+                if(!selectedFile){
                     e.preventDefault();
-                    showAlert('请先上传图片');
+                    showAlert('请先上传图片并获取评分');
                 }
             });
         }
     });
+
+    /**
+     * navLinks.forEach(link => {
+     *   if (link.getAttribute('href') === 'result.html') {
+     *       link.addEventListener('click', (e) => {
+     *           if (!selectedFile) {
+     *               e.preventDefault();
+     *               showAlert('请先上传图片');
+     *          }
+     *       });
+     *   }
+     * }); 
+     */
     
 
     // 点击上传区域触发文件选择
@@ -132,7 +266,9 @@ function initUploadPage() {
             
             confirmBtn.disabled = false;
         } else {
-            showMessage('请选择JPG或PNG格式的图片文件！');
+            //showMessage('请选择JPG或PNG格式的图片文件！');
+            showAlert('请选择JPG或PNG格式的图片文件！');
+
         }
     }
 
@@ -142,11 +278,15 @@ function initUploadPage() {
             showAlert('请输入学号');
             return
         } 
-        if(selectedFile){
-            await uploadAndProcessImage(selectedFile,studentIdInput.value.trim());
-        }else{
+        if(!selectedFile){
+            //await uploadAndProcessImage(selectedFile,studentIdInput.value.trim());
             showAlert('请先选择要上传的图片！');
+            return;
         }
+        //}else{
+        //   showAlert('请先选择要上传的图片！');
+        //}
+        await uploadAndProcessImage(selectedFile,studentIdInput.value.trim());
     });
 
     // 重新上传按钮
@@ -179,36 +319,91 @@ function initUploadPage() {
             toggleElement('uploadStatus', true);
             confirmBtn.disabled = true;
             confirmBtn.textContent = '处理中...';
+            
+            console.log('开始完整处理流程，学号:', studentId);
 
-            /**
-             * // 模拟上传到后端（实际项目中替换为真实API调用）
+            /*
+            // ========== 模拟2数据测试 ==========
+            
+            // 模拟处理延迟
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // 创建模拟结果数据
+            const result = {
+                student_id: studentId, // 使用前端输入的学号
+                total_score: Math.floor(Math.random() * 30) + 70, // 70-100的随机分数
+                ai_feedback: `
+                    <h3>📊 评分细则（模拟数据）</h3>
+                    <ul>
+                        <li><strong>可编译性：</strong>20/20分 - 代码一次性编译通过</li>
+                        <li><strong>正确性：</strong>35/40分 - 通过7/8个测试用例</li>
+                        <li><strong>代码质量：</strong>18/20分 - 结构清晰，命名规范</li>
+                        <li><strong>鲁棒性：</strong>8/10分 - 有基础异常处理</li>
+                        <li><strong>文档与可读性：</strong>4/10分 - 缺少必要注释</li>
+                    </ul>
+                    
+                    <h3>📝 评分理由</h3>
+                    <p>代码逻辑清晰，基本功能实现完整，但在边界条件处理上可以更加完善。</p>
+                    
+                    <h3>💡 改进建议</h3>
+                    <ul>
+                        <li>建议在关键函数前添加注释，说明其功能和参数</li>
+                        <li>第25行的循环可以优化，避免不必要的计算</li>
+                        <li>考虑使用更描述性的变量名，提高代码可读性</li>
+                        <li>可以添加更多的输入验证来增强程序的健壮性</li>
+                    </ul>
+                `
+            };
+            
+            console.log('模拟处理完成，准备跳转:', result);
+            */
+            /*
+            // 模拟1上传到后端
             const taskId = await mockUploadToBackend(file,studentId);
             
             // 跳转到结果页面，传递taskId和studentId
             window.location.href = `result.html?task_id=${taskId}&student_id=${studentId}`;
-             */
+            */
             
+            //==============  真实API调用  ====================
             //1.先上传文件
-            const filepath = await realUploadToBackend(file, studentId);
+            //const filepath = await realUploadToBackend(file, studentId);
+            const filepath = await realUploadToBackend(file);
 
             //2.然后获取AI评分
-            const result = await realFetchResult(filepath,studentId);
+            //const result = await realFetchResult(filepath,studentId);
+            const apiResult = await realFetchResult(filepath);
+
+            //3.准备结果数据
+            const result = {
+                student_id: studentId, // 使用前端输入的学号
+                total_score: apiResult.score_breakdown.total,
+                ai_feedback: formatAIFeedback(apiResult)
+            };
+            
+            console.log('处理完成，准备跳转，结果:', result);
 
             //3.跳转到结果页面，传递数据
             //由于数据较多，尝试使用URL参数传递基本信息，或者使用sessionStorage
             sessionStorage.setItem('gradingResult', JSON.stringify(result));
-            window.location.href = `result.html?student_id=${studentId}`;
-
+            //window.location.href = `result.html?student_id=${studentId}`;
+            window.location.href = `/result`;
             
         } catch (error) {
             console.error('上传错误:', error);
             showAlert('处理失败：' + error.message);
-            resetUploadState();
+            //resetUploadState();
+            // 重置状态
+            toggleElement('uploadStatus', false);
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = '确认上传';
         }
     }
 
     // 后端上传
-    async function realUploadToBackend(file,studentId) {
+
+    /**将学生id手动输入后传递到后端
+        async function realUploadToBackend(file,studentId) {
         const formData = new FormData();
         formData.append('file',file)
         //后端支持添加学号的话
@@ -248,7 +443,7 @@ function initUploadPage() {
             });
             }
         **/
-    }
+    
     // 初始状态禁用确认按钮
     confirmBtn.disabled = true;
 }
@@ -291,6 +486,7 @@ function initResultPage() {
     //从sessionStorage获取结果
     const resultJson = sessionStorage.getItem('gradingResult');
 
+    /*
     if(resultJson){
         const result = JSON.parse(resultJson);
         displayResult(result);
@@ -299,6 +495,20 @@ function initResultPage() {
     }else{
         //如果没有数据，显示错误
         displayError('没有找到评分结果，请重新上传');
+    }
+    */
+   if (resultJson) {
+        try {
+            const result = JSON.parse(resultJson);
+            console.log('从sessionStorage获取结果:', result);
+            displayResult(result);
+            sessionStorage.removeItem('gradingResult');
+        } catch (error) {
+            console.error('解析结果失败:', error);
+            displayError('数据解析失败，请重新上传');
+        }
+    } else {
+        displayError('没有找到评分结果，请先上传图片并获取评分');
     }
 
     //再次上传按钮
@@ -313,6 +523,7 @@ function initResultPage() {
         loadingContent.style.display = 'none';
         
         // 更新学号和分数
+        //studentScore.textContent = `${result.student_id} - ${result.total_score}分`;
         studentScore.textContent = `${result.student_id} - ${result.total_score}分`;
         
         // 显示AI内容
@@ -321,47 +532,19 @@ function initResultPage() {
 
     // 显示错误状态
     function displayError(message) {
+        // 更新标题显示错误状态
+        studentScore.textContent = '加载失败';
+        studentScore.style.color = '#e74c3c';
+
         loadingContent.innerHTML = `
             <div style="color: #e74c3c; text-align: center;">
                 <p>❌ ${message}</p>
+                <button class="btn btn-primary" onclick="window.location.href='index.html'" style="margin-top: 1rem;">返回上传页面</button>
             </div>
         `;
     }
 
-    // 获取结果
-    async function realFetchResult(filepath, studentId) {
-        //真实的获取AI评分
-        try{
-            const response = await fetch(`${CONFIG.API_BASE_URL}/ai_score`,{
-                method: 'POST',
-                headers:{
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    filepath: filepath
-                })
-            });
-
-            if(!response.ok){
-                throw new Error(`获取评分失败: ${response.status} ${response.statusText}`);
-            }
-
-            const result = await response.json();
-
-            //根据后端返回格式处理
-            if(result.score_breakdown){
-                return{
-                    student_id: studentId,
-                    total_score: result.score_breakdown.total,
-                    ai_feedback: formatAIFeedback(result)//格式化后端返回的数据
-                };
-            } else {
-                throw new Error(result.error || '评分数据缺失');
-            }
-        } catch (error){
-            console.error('获取评分API错误', error);
-            throw error;
-        }
+    
         /** 
         return new Promise((resolve) => {
             setTimeout(() => {
@@ -375,41 +558,9 @@ function initResultPage() {
             }, 3000);
         });
         */
-    }
+}
 
-    //格式化AI反馈为HTML
-    function formatAIFeedback(apiResult){
-        const breakdown = apiResult.score_breakdown;
-        const rationale = apiResult.rationale;
-        const suggestions = apiResult.suggestions;
-
-        let feedbackHTML = `
-        <h3>📊 评分细则</h3>
-            <ul>
-                <li><strong>可编译性：</strong>20/20分 - 代码一次性编译通过</li>
-                <li><strong>正确性：</strong>35/40分 - 通过7/8个测试用例</li>
-                <li><strong>代码质量：</strong>18/20分 - 结构清晰，命名规范</li>
-                <li><strong>鲁棒性：</strong>8/10分 - 有基础异常处理</li>
-                <li><strong>文档与可读性：</strong>4/10分 - 缺少必要注释</li>
-            </ul>
-
-            <h3>📝 评分理由</h3>
-        <p>${rationale}</p>
-        `;
-
-        if (suggestions && suggestions.length > 0){
-            feedbackHTML += `
-                <h3>💡 改进建议</h3>
-                <ul>
-            `;
-            suggestions.forEach(suggestions => {
-                feedbackHTML += `<li>${suggestion}</li>`;
-            });
-            feedbackHTML += `</ul>`;    
-        }
-
-        return feedbackHTML;
-    }
+    
 
 
     /** 
@@ -434,7 +585,7 @@ function initResultPage() {
         `;
     }
     */
-}
+
 
 
 //=======================  part4:页面初始化  ==========================
